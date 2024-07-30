@@ -8,12 +8,17 @@ import './App.css';
  */
 interface IState {
   data: ServerRespond[],
+  showGraph:boolean,
 }
 
 /**
  * The parent element of the react app.
  * It renders title, button and Graph react element.
  */
+interface PerspectiveViwerElement extends HTMLElement {
+  load:(table:Table) => void,
+}
+
 class App extends Component<{}, IState> {
   constructor(props: {}) {
     super(props);
@@ -22,25 +27,147 @@ class App extends Component<{}, IState> {
       // data saves the server responds.
       // We use this state to parse data down to the child element (Graph) as element property
       data: [],
+      showGraph : false,
     };
   }
 
   /**
    * Render Graph react component with state.data parse as property data
    */
+
+componentDidMount(){
+  const elem = document.getElementByTagName('perspective-viwer')[0] as unknown as PerspectiveViwerElement ;
+}
+
+
   renderGraph() {
+    if(this.state.showGraph) {
     return (<Graph data={this.state.data}/>)
+    }
   }
 
   /**
    * Get new data from server and update the state with the new data
    */
+  elem: any.setAttribute('view','y_line');
+  elem.setAttribute('column-pivots','["stock"]');
+  elem.setAttribute('row-pivots' ,'["timestamp"]');
+  elem.setAttribute('columns', '["top_ask_price"]');
+  elem.setAttribute('aggregates',
+    {
+      "stock":"distinct count",
+      "top_ask_price":"avg",
+      "top_bid_price":"avg",
+      "timestamp":"distinct count"
+    });import React, { Component } from 'react';
+    import DataStreamer, { ServerRespond } from './DataStreamer';
+    import Graph from './Graph';
+    import './App.css';
+    
+    /**
+     * State declaration for <App />
+     */
+    interface IState {
+      data: ServerRespond[],
+      showGraph: boolean,
+    }
+    
+    /**
+     * The parent element of the react app.
+     * It renders title, button and Graph react element.
+     */
+    interface PerspectiveViewerElement extends HTMLElement {
+      load: (table: Table) => void,
+    }
+    
+    class App extends Component<{}, IState> {
+      constructor(props: {}) {
+        super(props);
+    
+        this.state = {
+          data: [],
+          showGraph: false,
+        };
+      }
+    
+      componentDidMount() {
+        const elem = document.getElementsByTagName('perspective-viewer')[0] as PerspectiveViewerElement;
+        elem.setAttribute('view', 'y_line');
+        elem.setAttribute('column-pivots', '["stock"]');
+        elem.setAttribute('row-pivots', '["timestamp"]');
+        elem.setAttribute('columns', '["top_ask_price"]');
+        elem.setAttribute('aggregates', JSON.stringify({
+          "stock": "distinct count",
+          "top_ask_price": "avg",
+          "top_bid_price": "avg",
+          "timestamp": "distinct count"
+        }));
+      }
+    
+      renderGraph() {
+        if (this.state.showGraph) {
+          return (<Graph data={this.state.data} />);
+        }
+        return null;
+      }
+    
+      getDataFromServer() {
+        let x = 0;
+        const interval = setInterval(() => {
+          DataStreamer.getData((serverResponds: ServerRespond[]) => {
+            this.setState({ 
+              data: serverResponds,
+              showGraph: true,
+            });
+          });
+          x++;
+          if (x > 1000) {
+            clearInterval(interval);
+          }
+        }, 100);
+      }
+    
+      render() {
+        return (
+          <div className="App">
+            <header className="App-header">
+              Bank & Merge Co Task 2
+            </header>
+            <div className="App-content">
+              <button className="btn btn-primary Stream-button"
+                onClick={() => { this.getDataFromServer() }}>
+                Start Streaming Data
+              </button>
+              <div className="Graph">
+                {this.renderGraph()}
+              </div>
+            </div>
+          </div>
+        )
+      }
+    }
+    
+    export default App;
+    
+
+
+
   getDataFromServer() {
-    DataStreamer.getData((serverResponds: ServerRespond[]) => {
+    let x=0;
+    const interval = setTnterval(() =>{
+      DataStreamer.getData((serverResponds: ServerRespond[]) => {
       // Update the state by creating a new array of data that consists of
       // Previous data in the state and the new data from server
-      this.setState({ data: [...this.state.data, ...serverResponds] });
-    });
+      this.setState({ 
+        data: serverResponds,
+        showGraph : true,
+       });
+      });
+      x++;
+      if(x>1000){
+        clearInterval(interval);
+      }
+    },100);
   }
 
   /**
